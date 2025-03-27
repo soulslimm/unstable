@@ -360,13 +360,7 @@ func handlePublish(conn *rtmp.Conn) {
 	urlParts := strings.Split(strings.Trim(conn.URL.RequestURI(), "/"), "/")
 	common.LogDebugln("urlParts->", urlParts)
 
-	if len(urlParts) > 2 {
-		common.LogErrorln("Extra garbage after stream key")
-		l.Unlock()
-		conn.Close()
-		return
-	}
-
+	// Ensure there's only one stream key, allow any user with the correct key to publish
 	if len(urlParts) != 2 {
 		common.LogErrorln("Missing stream key")
 		l.Unlock()
@@ -374,38 +368,47 @@ func handlePublish(conn *rtmp.Conn) {
 		return
 	}
 
+	// Validate the stream key
 	if urlParts[1] != settings.GetStreamKey() {
-		common.LogErrorln("Stream key is incorrect.  Denying stream.")
+		common.LogErrorln("Stream key is incorrect. Denying stream.")
 		l.Unlock()
 		conn.Close()
-		return //If key not match, deny stream
+		return // Deny stream if the key is incorrect
 	}
 
 	streamPath := urlParts[0]
 	_, exists := channels[streamPath]
+
+	// If the stream is already running, close the current stream to allow takeover
 	if exists {
-		common.LogErrorln("Stream already running.  Denying publish.")
-		conn.Close()
-		l.Unlock()
-		return
+		common.LogInfoln("Stream already running, allowing new user to take over.")
+		// Close the current stream and remove it from channels
+		ch := channels[streamPath]
+		ch.que.Close()
+		delete(channels, streamPath)
 	}
 
+	// Set up the new channel for the stream
 	ch := &Channel{}
 	ch.que = pubsub.NewQueue()
 	err := ch.que.WriteHeader(streams)
 	if err != nil {
 		common.LogErrorf("Could not write header to streams: %v\n", err)
+		l.Unlock()
+		conn.Close()
+		return
 	}
 	channels[streamPath] = ch
 	l.Unlock()
 
 	stats.startStream()
 
-	common.LogInfoln("Stream started")
+	common.LogInfoln("Stream started (or taken over)")
 	err = avutil.CopyPackets(ch.que, conn)
 	if err != nil {
-		common.LogErrorf("Could not copy packets to connections: %v\n", err)
+		common.LogErrorf("Could not copy packets to connection: %v\n", err)
 	}
+
 	common.LogInfoln("Stream finished")
 
 	stats.endStream()

@@ -1,10 +1,10 @@
 :root {
     --var-border: 1px solid #606060;
     --var-border-radius: 5px;
-    --var-message-color: #f4f4f4;
+    --var-message-color: #ffffff;
     --var-link-color: #a9c8c3;
     --var-contrast-color: #1bf7ec;
-    --var-background-color: #0F0F11;
+    --var-background-color: linear-gradient(to right, rgba(0,0,0,0), teal), linear-gradient(to right, rgba(255,0,100,.3), rgba(255,100,127,.2)), linear-gradient(to top right, yellow, rgba(0,0,0,0)), radial-gradient(closest-corner at 20% 80%, yellow, red);
     --var-popout-color: #393940;
     --var-max-height: 98vh;
     --var-max-width: 98vw;

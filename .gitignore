@@ -31,9 +31,6 @@ MovieNight*
 # Twitch channel info
 static/subscriber.json
 
-# This file now holds the stream key.  Don't include it.
-settings.json
-
 # vscode
 .vscode
 
